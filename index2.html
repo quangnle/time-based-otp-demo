@@ -88,7 +88,6 @@
         function computeChallenge(){
             let pwd = document.getElementById('pwd').value * 1;
             let r = x - c*pwd;
-            console.log(r);
             while (r < 0) {
                 r += p-1;
             }
@@ -99,7 +98,6 @@
             let r = document.getElementById('txtValidation').value * 1;
             let gr = powMod(g, r, p);            
             let yc = powMod(y, c, p);
-            console.log(gr, yc);
             let v = (gr * yc) % p;
             let serverContent = `Received ${r} from user.\nChecking if t(${t}) == v(${v})\n ===> ${v == t ? 'Valid' : 'Invalid'}`;
             document.getElementById('txtServerValidation').value = serverContent;
