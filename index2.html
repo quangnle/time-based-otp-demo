@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table {
+            width: 750px;
+            padding: 10px;
+            border: 1px solid black;            
+        }
+        th {
+            background-color: #f2f2f2;
+            padding: 10px;
+        }
+        td {
+            padding: 10px;
+        }
+        
+        textarea {
+            width: 350px;
+            color: white;
+            background-color: black;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+    <title>Timebased OTP Demo</title>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>User</th><th>Server</th>
+        </tr>
+        <tr>
+            <td>
+                w=<input type="text" id="pwd" />
+                <button id="btnInit" onclick="init()">Init ZKP</button>
+                <textarea id="txtUserSendInit" rows="5" readonly></textarea>
+            </td>
+            <td></td>
+        </tr>
+        <tr>
+            <td></td><td><textarea id="txtServerReceiveInit" rows="5" readonly></textarea></td>
+        </tr>
+        <tr>
+            <td><button onclick="challenge()">Request challenge</button></td>
+            <td>
+                <textarea id="txtServerSendChallenge" rows="5" readonly></textarea>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button id="computeChallenge()" onclick="computeChallenge()">Compute evidence</button>
+                <textarea id="txtEvidence" rows="5" readonly></textarea>
+            </td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><input type="text" id="txtValidation"  placeholder="validate your evidence"> <button onclick="validate()">Validate</button></td>
+            <td><textarea id="txtServerValidation" rows="5" readonly></textarea></td>
+        </tr>
+    </table>
+    <script>
+        const g = 5;
+        const p = 999983;
+        let y = -1;
+        let t = -1;
+        let c = -1;
+        let x = -1;
+
+        function init() {
+            let pwd = document.getElementById('pwd').value * 1;
+            y = powMod(g, pwd, p);
+            x = Math.floor(Math.random() * 1000);
+            t = powMod(g, x, p);
+            let userContent = `Settings: w = ${pwd}, x=${x} \nSent (y: ${y}, t: ${t}) to server`;
+            document.getElementById('txtUserSendInit').value = userContent;
+            let serverContent = `Received (y: ${y}, t: ${t}) from user`;
+            document.getElementById('txtServerReceiveInit').value = serverContent;
+        }
+
+        function challenge() {
+            c = Math.floor(Math.random() * 1000);
+            let serverContent = `Challenge: ${c}`;
+            document.getElementById('txtServerSendChallenge').value = serverContent;
+        }
+
+        function computeChallenge(){
+            let pwd = document.getElementById('pwd').value * 1;
+            let r = x - c*pwd;
+            console.log(r);
+            while (r < 0) {
+                r += p-1;
+            }
+            document.getElementById('txtEvidence').value = `Computed evidence (in group order p-1):\n r = x - c*pwd \n = ${x} - ${c}*${pwd} = ${r}`;
+        }
+
+        function validate(){
+            let r = document.getElementById('txtValidation').value * 1;
+            let gr = powMod(g, r, p);            
+            let yc = powMod(y, c, p);
+            console.log(gr, yc);
+            let v = (gr * yc) % p;
+            let serverContent = `Received ${r} from user.\nChecking if t(${t}) == v(${v})\n ===> ${v == t ? 'Valid' : 'Invalid'}`;
+            document.getElementById('txtServerValidation').value = serverContent;
+        }
+
+        // quick pow modulo function
+        function powMod(a, b, m) {
+            let res = 1;
+            a = a % m;
+            while (b > 0) {
+                if (b % 2 == 1) {
+                    res = (res * a) % m;
+                }
+                b = Math.floor(b / 2);
+                a = (a * a) % m;
+            }
+            return res;
+        }
+    </script>
+</body>
+</html> 
