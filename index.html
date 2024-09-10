@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table {
+            width: 800px;
+            padding: 10px;
+            border: 1px solid black;            
+        }
+        th {
+            background-color: #f2f2f2;
+            padding: 10px;
+        }
+        td {
+            padding: 10px;
+        }
+        
+        textarea {
+            width: 100%;
+            color: white;
+            background-color: black;
+            font-family: 'Courier New', Courier, monospace;
+        }
+    </style>
+    <title>Timebased OTP Demo</title>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>User</th><th>Server</th>
+        </tr>
+        <tr>
+            <td></td><td><button id="btnGenKey" onclick="genkeys()">Generate keys</button></td>
+        </tr>
+        <tr>
+            <td></td><td><textarea id="txtServerSendKey" cols="50" rows="5" readonly></textarea></td>
+        </tr>
+        <tr>
+            <td><textarea id="txtKeys" cols="50" rows="10" readonly></textarea></td><td></td>
+        </tr>
+        <tr>
+            <td><input type="text" id="otp"  placeholder="validate your OTP here"> <button onclick="authen()">Authenticate</button></td>
+            <td><textarea id="txtServerAuthen" cols="50" rows="10" readonly></textarea></td>
+        </tr>
+    </table>
+    <script>
+        let secret = -1;
+        let interval = 15;
+        let t0 = 0;
+
+        function genkeys() {
+            secret = Math.floor(Math.random() * 1000000);
+            t0 = Date.now();
+            // convert t0 to date time string
+            var currentTime = new Date(t0 * 1000);            
+            
+            let serverContent = `Secret: ${secret} --- sent at: ${currentTime}`;
+            let userContent = `Secret: ${secret} --- received at: ${currentTime}\n`;
+
+            document.getElementById('txtServerSendKey').value = serverContent;
+            let userTerminal = document.getElementById('txtKeys');
+            userTerminal.value = userContent;
+        }
+
+        // quick pow modulo function
+        function powMod(a, b, m) {
+            let res = 1;
+            a = a % m;
+            while (b > 0) {
+                if (b % 2 == 1) {
+                    res = (res * a) % m;
+                }
+                b = Math.floor(b / 2);
+                a = (a * a) % m;
+            }
+            return res;
+        }
+
+        // function to generate OTP
+        function generateOTP(secret, interval) {
+            let tx = Math.floor((Date.now() - t0) / 1000);
+            let cx = Math.floor(tx / interval);
+            let otp = powMod(secret, cx, 999983);
+            return otp;
+        }
+
+        function authen(){
+            let otp = document.getElementById('otp').value * 1;
+            let tx = Math.floor((Date.now() - t0) / 1000);
+            let cx = Math.floor(tx / interval);
+            let otpGen1 = powMod(secret, Math.max(cx - 1, 0), 999983);            
+            let otpGen2 = powMod(secret, cx, 999983);                        
+            let otpGen3 = powMod(secret, cx+1, 999983);                        
+            let txtServerAuthen = document.getElementById('txtServerAuthen');
+            
+            // eliminate time lag
+            if (otp == otpGen1 || otp == otpGen2 || otp == otpGen3) {
+                txtServerAuthen.value += `Authentication successful with OTP: ${otp}\n\n`;
+            } else {
+                txtServerAuthen.value += `Authentication failed with OTP: ${otp}\n\n`;
+            }
+
+            // always scroll to bottom
+            txtServerAuthen.scrollTop = txtServerAuthen.scrollHeight;
+        }
+
+        // set interval to generate OTP
+        setInterval(() => {
+            if (secret == -1) return;
+            let otp = generateOTP(secret, interval);            
+            document.getElementById('txtKeys').value += `\nOTP: ${otp} --- generated at: ${new Date(Date.now())} \n`;
+            let userTerminal = document.getElementById('txtKeys');
+            userTerminal.scrollTop = userTerminal.scrollHeight;
+        }, interval * 1000);
+
+    </script>
+</body>
+</html> 
